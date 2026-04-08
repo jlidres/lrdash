@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LRMS Inventory Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260408-7" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">San Juan LRMS</p>
+          <h1>Learning Resource Inventory Dashboard</h1>
+          <p class="hero-text">
+            A live operational view of inventory volumes, distribution status,
+            school coverage, and recent updates from the LRMS Google Sheet.
+          </p>
+        </div>
+        <div class="hero-meta">
+          <div class="source-card">
+            <span class="source-label">Data source</span>
+            <strong id="dataSourceLabel">Loading...</strong>
+            <span id="dataSourceSubtext" class="source-subtext"
+              >Checking Google Sheet connection</span
+            >
+          </div>
+          <div class="hero-actions">
+            <button id="refreshButton" class="button button-primary" type="button">
+              Refresh live data
+            </button>
+            <button id="exportButton" class="button button-secondary" type="button">
+              Export filtered CSV
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <section class="status-strip">
+        <div id="statusBanner" class="status-banner is-loading">
+          Loading dashboard data...
+        </div>
+      </section>
+
+      <section class="metrics-grid" aria-label="Summary metrics">
+        <article class="metric-card">
+          <span class="metric-label">Visible records</span>
+          <strong id="metricRecords" class="metric-value">--</strong>
+          <span class="metric-caption">Rows matching the current filters</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Visible quantity</span>
+          <strong id="metricQuantity" class="metric-value">--</strong>
+          <span class="metric-caption">Total pieces across visible rows</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Schools represented</span>
+          <strong id="metricSchools" class="metric-value">--</strong>
+          <span class="metric-caption">Unique schools in the filtered view</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Distributed share</span>
+          <strong id="metricDistributed" class="metric-value">--</strong>
+          <span class="metric-caption">Portion of visible quantity already distributed</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">In-stock quantity</span>
+          <strong id="metricInStock" class="metric-value">--</strong>
+          <span class="metric-caption">Items currently marked as in stock</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Latest update</span>
+          <strong id="metricLatestUpdate" class="metric-value metric-date">--</strong>
+          <span class="metric-caption">Most recent timestamp in the visible data</span>
+        </article>
+      </section>
+
+      <section class="panel filters-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="panel-kicker">Slice the data</p>
+            <h2>Filters</h2>
+          </div>
+          <button id="resetFiltersButton" class="button button-secondary" type="button">
+            Reset filters
+          </button>
+        </div>
+
+        <div class="filters-grid">
+          <label class="filter-field">
+            <span>School</span>
+            <select id="schoolFilter">
+              <option value="">All schools</option>
+            </select>
+          </label>
+          <label class="filter-field">
+            <span>Category</span>
+            <select id="categoryFilter">
+              <option value="">All categories</option>
+            </select>
+          </label>
+          <label class="filter-field">
+            <span>Type</span>
+            <select id="typeFilter">
+              <option value="">All types</option>
+            </select>
+          </label>
+          <label class="filter-field">
+            <span>Status</span>
+            <select id="statusFilter">
+              <option value="">All statuses</option>
+            </select>
+          </label>
+          <label class="filter-field">
+            <span>Grade level</span>
+            <select id="gradeFilter">
+              <option value="">All grade levels</option>
+            </select>
+          </label>
+          <label class="filter-field">
+            <span>Learning area</span>
+            <select id="areaFilter">
+              <option value="">All learning areas</option>
+            </select>
+          </label>
+          <label class="filter-field filter-search">
+            <span>Search title, supplier, ITR, or remarks</span>
+            <input
+              id="searchFilter"
+              type="search"
+              placeholder="Search keyword"
+              autocomplete="off"
+            />
+          </label>
+        </div>
+      </section>
+
+      <section class="insights-grid">
+        <article class="panel insight-card">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Operational mix</p>
+              <h2>Quantity by school</h2>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="schoolChart" aria-label="Quantity by school"></canvas>
+          </div>
+        </article>
+
+        <article class="panel insight-card">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Status watch</p>
+              <h2>Quantity by status</h2>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="statusChart" aria-label="Quantity by status"></canvas>
+          </div>
+        </article>
+
+        <article class="panel insight-card">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Resource profile</p>
+              <h2>Top material types</h2>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="typeChart" aria-label="Top material types"></canvas>
+          </div>
+        </article>
+
+        <article class="panel insight-card">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Supply trend</p>
+              <h2>Monthly received quantity</h2>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="timelineChart" aria-label="Monthly received quantity"></canvas>
+          </div>
+        </article>
+      </section>
+
+      <section class="tables-grid">
+        <article class="panel table-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Priority view</p>
+              <h2>Largest in-stock items</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="priority-table">
+              <thead>
+                <tr>
+                  <th>Received</th>
+                  <th>Title</th>
+                  <th>School</th>
+                  <th>Category</th>
+                  <th>Type</th>
+                  <th>Grade</th>
+                  <th>Learning area</th>
+                  <th>Status</th>
+                  <th class="num">Qty</th>
+                </tr>
+              </thead>
+              <tbody id="stockTableBody"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel table-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Fresh activity</p>
+              <h2>Latest updates</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="activity-table">
+              <thead>
+                <tr>
+                  <th>Updated</th>
+                  <th>Received</th>
+                  <th>Title</th>
+                  <th>School</th>
+                  <th>Category</th>
+                  <th>Type</th>
+                  <th>Grade</th>
+                  <th>Status</th>
+                  <th class="num">Qty</th>
+                </tr>
+              </thead>
+              <tbody id="updatesTableBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel detail-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="panel-kicker">Detail view</p>
+            <h2>Filtered inventory rows</h2>
+          </div>
+          <p id="detailSummary" class="detail-summary">Showing latest 20 rows</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Received</th>
+                <th>School</th>
+                <th>Category</th>
+                <th>Type</th>
+                <th>Grade</th>
+                <th>Learning area</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th class="num">Qty</th>
+              </tr>
+            </thead>
+            <tbody id="detailTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="./app.js?v=20260408-7"></script>
+  </body>
+</html>
